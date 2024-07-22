@@ -12,8 +12,8 @@ const MarketCapChart = () => {
   useEffect(() => {
     const fetchMarketCapData = async () => {
       try {
-        // Fetch top 5 trending coins
-        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1', {
+        // Fetch top 5 coins by total volume
+        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=5&page=1', {
           method: 'GET',
           headers: {
             accept: 'application/json',
@@ -30,11 +30,12 @@ const MarketCapChart = () => {
           borderColor: getRandomColor(),
           backgroundColor: getRandomColor(0.2),
           fill: true,
+          borderWidth: 1,
         }));
 
         // Fetch historical data for each coin
         const historicalDataPromises = coins.map(async (coin) => {
-          const historicalResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1`, {
+          const historicalResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30`, {
             method: 'GET',
             headers: {
               accept: 'application/json',
@@ -53,11 +54,11 @@ const MarketCapChart = () => {
         // Format data for chart
         historicalDataResults.forEach((result, index) => {
           const { prices } = result;
-          const formattedData = prices.map(([timestamp, price]) => ({ x: new Date(timestamp).toLocaleTimeString(), y: price }));
+          const formattedData = prices.map(([timestamp, price]) => ({ x: new Date(timestamp).toLocaleDateString(), y: price }));
           datasets[index].data = formattedData;
         });
 
-        const allLabels = historicalDataResults[0].prices.map(([timestamp]) => new Date(timestamp).toLocaleTimeString());
+        const allLabels = historicalDataResults[0].prices.map(([timestamp]) => new Date(timestamp).toLocaleDateString());
         setChartData({
           labels: allLabels,
           datasets
@@ -82,8 +83,8 @@ const MarketCapChart = () => {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div>
-      <h2>Global Market Cap Chart</h2>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
+      <h2 style={{ fontSize: '24px', textAlign: 'center', marginBottom: '20px' }}>Top 5 Coins by Total Volume</h2>
       <Line
         data={chartData}
         options={{
@@ -91,6 +92,9 @@ const MarketCapChart = () => {
           plugins: {
             legend: {
               position: 'top',
+              labels: {
+                color: '#333',
+              },
             },
             tooltip: {
               callbacks: {
@@ -102,19 +106,42 @@ const MarketCapChart = () => {
           },
           scales: {
             x: {
+              type: 'category',
+              grid: {
+                color: '#ddd',
+                borderColor: '#ddd',
+              },
+              ticks: {
+                color: '#555',
+                autoSkip: true,
+                maxTicksLimit: 10,
+              },
               title: {
                 display: true,
-                text: 'Time',
+                text: 'Date',
+                color: '#333',
+                font: {
+                  size: 14,
+                },
               },
             },
             y: {
+              grid: {
+                color: '#ddd',
+                borderColor: '#ddd',
+              },
+              ticks: {
+                color: '#555',
+                callback: function (value) {
+                  return `$${value}`;
+                },
+              },
               title: {
                 display: true,
                 text: 'Price (USD)',
-              },
-              ticks: {
-                callback: function (value) {
-                  return `$${value}`;
+                color: '#333',
+                font: {
+                  size: 14,
                 },
               },
             },

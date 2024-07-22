@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, LineElement, BarElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
+ChartJS.register(LineElement, BarElement, CategoryScale, LinearScale, PointElement);
 
 const CoinDetails = ({ coin }) => {
   const [coinDetails, setCoinDetails] = useState(null);
   const [chartData, setChartData] = useState({});
   const [priceHistoryData, setPriceHistoryData] = useState({});
+  const [sevenDayData, setSevenDayData] = useState([]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -45,6 +46,17 @@ const CoinDetails = ({ coin }) => {
         const history = await historyResponse.json();
         setPriceHistoryData(history);
 
+        // Fetch price data for the past 7 days
+        const sevenDayResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=7&interval=daily`, {
+          method: 'GET',
+          headers: {
+            accept: 'application/json',
+            'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
+          }
+        });
+        const sevenDay = await sevenDayResponse.json();
+        setSevenDayData(sevenDay.prices);
+
       } catch (error) {
         console.error('Error fetching coin details or chart data:', error);
       }
@@ -76,6 +88,37 @@ const CoinDetails = ({ coin }) => {
     };
   };
 
+  // Format data for the 7-day performance bar chart
+  const formatSevenDayData = () => {
+    if (!sevenDayData.length) return { labels: [], datasets: [] };
+
+    const labels = sevenDayData.map(([timestamp]) => new Date(timestamp).toLocaleDateString());
+    const data = sevenDayData.map(([, price]) => price);
+    const currentPrice = coinDetails.market_data.current_price.usd;
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Price (Last 7 Days)',
+          data,
+          backgroundColor: '#D8BFD8',
+          borderColor: '#76b900',
+        },
+        {
+          label: 'Current Price',
+          data: Array(data.length).fill(currentPrice),
+          backgroundColor: '#E0115F',
+          borderColor: '#E0115F',
+          type: 'line',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        },
+      ]
+    };
+  };
+
   return (
     <div>
       {coinDetails && (
@@ -99,28 +142,6 @@ const CoinDetails = ({ coin }) => {
           <p>Price Change % 24H: {coinDetails.market_data.price_change_percentage_24h}%</p>
           <p>All-Time High: ${coinDetails.market_data.ath.usd}</p>
           <p>Price Change % 1H: {coinDetails.market_data.price_change_percentage_1h_in_currency.usd}%</p><br/>
-
-          {/* 7D Sparkline
-          {coinDetails.market_data.sparkline_7d && (
-            <div style={{ margin: '20px 0' }}>
-              <h3>Price Sparkline (7 Days)</h3>
-              <Line
-                data={{
-                  labels: coinDetails.market_data.sparkline_7d.price.map((_, i) => i),
-                  datasets: [
-                    {
-                      label: 'Price',
-                      data: coinDetails.market_data.sparkline_7d.price,
-                      borderColor: '#ff5733',
-                      backgroundColor: 'rgba(255, 87, 51, 0.2)',
-                      fill: true,
-                    },
-                  ],
-                }}
-                options={{ responsive: true }}
-              />
-            </div>
-          )} */}
 
           {/* Daily Price History */}
           {priceHistoryData.prices && (
@@ -191,6 +212,78 @@ const CoinDetails = ({ coin }) => {
             />
           </div>
           )}
+
+          {/* 7-Day Performance Bar */}
+          {sevenDayData.length > 0 && (
+            <div style={{ width: '100%', height: '400px', margin: '20px 0', alignContent: 'center', textAlign: 'center' }}>
+              <br/><br/>
+              <h3 style={{ fontSize: '24px' }}><b>7-Day Performance</b></h3><br/>
+              <Bar
+                data={formatSevenDayData()}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                      labels: {
+                        color: '#333',
+                      },
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function (context) {
+                          return `${context.dataset.label}: $${context.raw}`;
+                        },
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      grid: {
+                        color: '#ddd',
+                        borderColor: '#ddd',
+                      },
+                      ticks: {
+                        color: '#555',
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                      },
+                      title: {
+                        display: true,
+                        text: 'Date',
+                        color: '#333',
+                        font: {
+                          size: 14,
+                        },
+                      },
+                    },
+                    y: {
+                      grid: {
+                        color: '#ddd',
+                        borderColor: '#ddd',
+                      },
+                      ticks: {
+                        color: '#555',
+                        callback: function (value) {
+                          return `$${value}`;
+                        },
+                      },
+                      title: {
+                        display: true,
+                        text: 'Price (USD)',
+                        color: '#333',
+                        font: {
+                          size: 14,
+                        },
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
+          )}
+
         </div>
       )}
     </div>
