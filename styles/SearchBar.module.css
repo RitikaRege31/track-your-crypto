@@ -1,0 +1,59 @@
+/* styles/SearchBar.module.css */
+
+.searchBar {
+    position: relative;
+    width: 100%;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 1000;
+  }
+  
+  .suggestionItem {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .symbol {
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    color: #333;
+    margin-right: 0.5rem;
+    font-weight: bold;
+  }
+  
+  .name {
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .suggestionItem:hover {
+    background-color: #f4f4f4;
+  }
+  

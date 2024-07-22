@@ -1,0 +1,10 @@
+
+  /* styles/CoinCard.module.css */
+.card {
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    margin: 10px;
+    cursor: pointer;
+  }

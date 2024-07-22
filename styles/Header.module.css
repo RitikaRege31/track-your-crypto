@@ -1,0 +1,23 @@
+/* styles/Header.module.css */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #35779c;
+    color: white;
+
+  }
+  
+  .searchBar input {
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: none;
+  }
+  
+  .watchlistSummary {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
