@@ -6,6 +6,7 @@ import TopCoinsTable from '../components/TopCoinsTable';
 import Header from '../components/Header';
 import Watchlist from '../components/Watchlist';
 import CoinDetails from '../components/CoinDetails';
+import MarketCapChart from '../components/MarketCapChart';
 import { useWatchlist } from '../lib/WatchlistContext';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import styles from '../styles/Home.module.css';
@@ -69,7 +70,7 @@ export default function Home() {
               )}
             </Droppable>
             {/* {selectedCoin && <CoinDetails coin={selectedCoin} />} */}
-            
+            <MarketCapChart />
           </main>
           <aside className={styles.watchlist}>
             <Droppable droppableId="watchlist" type="COINS">
