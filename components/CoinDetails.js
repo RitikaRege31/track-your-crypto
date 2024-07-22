@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, LineElement, BarElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
 import simulateLivePriceUpdates from '../utils/mockLivePrices';
@@ -13,68 +13,68 @@ const CoinDetails = ({ coin }) => {
   const [sevenDayData, setSevenDayData] = useState([]);
   const [livePrice, setLivePrice] = useState(null);
 
-  useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const detailsResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}`, {
+  const fetchData = useCallback(async () => {
+    if (!coin) return;
+    
+    try {
+      const responses = await Promise.all([
+        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}`, {
           method: 'GET',
           headers: {
             accept: 'application/json',
             'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
           }
-        });
-        const details = await detailsResponse.json();
-        setCoinDetails(details);
-
-        const chartResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1&interval=hourly`, {
+        }),
+        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1&interval=hourly`, {
           method: 'GET',
           headers: {
             accept: 'application/json',
             'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
           }
-        });
-        const chart = await chartResponse.json();
-        setChartData(chart);
-
-        const historyResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=daily`, {
+        }),
+        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=daily`, {
           method: 'GET',
           headers: {
             accept: 'application/json',
             'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
           }
-        });
-        const history = await historyResponse.json();
-        setPriceHistoryData(history);
-
-        const sevenDayResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=7&interval=daily`, {
+        }),
+        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=7&interval=daily`, {
           method: 'GET',
           headers: {
             accept: 'application/json',
             'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
           }
-        });
-        const sevenDay = await sevenDayResponse.json();
-        setSevenDayData(sevenDay.prices);
-      } catch (error) {
-        console.error('Error fetching coin details or chart data:', error);
-      }
-    };
+        })
+      ]);
 
-    if (coin) {
-      fetchDetails();
+      const [details, chart, history, sevenDay] = await Promise.all(responses.map(res => res.json()));
+
+      setCoinDetails(details);
+      setChartData(chart);
+      setPriceHistoryData(history);
+      setSevenDayData(sevenDay.prices);
+
       simulateLivePriceUpdates(coin.id); // Start simulating live price updates
+    } catch (error) {
+      console.error('Error fetching coin details or chart data:', error);
     }
+  }, [coin]);
 
+  useEffect(() => {
+    fetchData();
+    
     const handlePriceUpdate = (newPrice) => {
       setLivePrice(newPrice);
     };
 
     PubSub.subscribe('priceUpdate', handlePriceUpdate);
 
-    return () => {
-      PubSub.subscribe('priceUpdate', handlePriceUpdate);
-    };
-  }, [coin]);
+    // Remove unsubscription logic if not supported
+    // return () => {
+    //   PubSub.unsubscribe('priceUpdate', handlePriceUpdate);
+    // };
+  }, [fetchData]);
 
   const formatPriceHistoryData = () => {
     if (!priceHistoryData.prices) return { labels: [], datasets: [] };
@@ -101,7 +101,7 @@ const CoinDetails = ({ coin }) => {
 
     const labels = sevenDayData.map(([timestamp]) => new Date(timestamp).toLocaleDateString());
     const data = sevenDayData.map(([, price]) => price);
-    const currentPrice = coinDetails.market_data.current_price.usd;
+    const currentPrice = coinDetails?.market_data?.current_price?.usd || 0;
 
     return {
       labels,
@@ -151,69 +151,69 @@ const CoinDetails = ({ coin }) => {
           <p>Price Change % 1H: {coinDetails.market_data.price_change_percentage_1h_in_currency.usd}%</p><br/>
 
           {priceHistoryData.prices && (
-            <div style={{ width: '100%', height: '400px', margin: '20px 0' , alignContent:'center',textAlign: 'center'}}>
-            <h3 style={{ fontSize: '24px' }}><b>Price vs. Date (Last 30 Days)</b></h3><br/>
-            <Line
-              data={formatPriceHistoryData()}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                    labels: {
-                      color: '#333',
+            <div style={{ width: '100%', height: '400px', margin: '20px 0', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '24px' }}><b>Price vs. Date (Last 30 Days)</b></h3><br/>
+              <Line
+                data={formatPriceHistoryData()}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                      labels: {
+                        color: '#333',
+                      },
                     },
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: function (context) {
-                        return `${context.dataset.label}: $${context.raw}`;
+                    tooltip: {
+                      callbacks: {
+                        label: function (context) {
+                          return `${context.dataset.label}: $${context.raw}`;
+                        },
                       },
                     },
                   },
-                },
-                scales: {
-                  x: {
-                    grid: {
-                      color: '#ddd',
-                      borderColor: '#ddd',
+                  scales: {
+                    x: {
+                      grid: {
+                        color: '#ddd',
+                        borderColor: '#ddd',
+                      },
+                      ticks: {
+                        color: '#555',
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                      },
+                      title: {
+                        display: true,
+                        text: 'Date',
+                        color: '#666',
+                      },
                     },
-                    ticks: {
-                      color: '#555',
-                      autoSkip: true,
-                      maxTicksLimit: 10,
-                    },
-                    title: {
-                      display: true,
-                      text: 'Date',
-                      color: '#666',
+                    y: {
+                      grid: {
+                        color: '#ddd',
+                        borderColor: '#ddd',
+                      },
+                      ticks: {
+                        color: '#555',
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                      },
+                      title: {
+                        display: true,
+                        text: 'Price',
+                        color: '#666',
+                      },
                     },
                   },
-                  y: {
-                    grid: {
-                      color: '#ddd',
-                      borderColor: '#ddd',
-                    },
-                    ticks: {
-                      color: '#555',
-                      autoSkip: true,
-                      maxTicksLimit: 10,
-                    },
-                    title: {
-                      display: true,
-                      text: 'Price',
-                      color: '#666',
-                    },
-                  },
-                },
-              }}
-            />
-          </div>
+                }}
+              />
+            </div>
           )}
 
           {sevenDayData.length > 0 && (
-            <div style={{ width: '100%', height: '400px', margin: '20px 0' , alignContent:'center',textAlign: 'center'}}>
+            <div style={{ width: '100%', height: '400px', margin: '20px 0', textAlign: 'center' }}>
               <br/><br/>
               <h3 style={{ fontSize: '24px' }}><b>Price vs. Date (Last 7 Days)</b></h3><br/>
               <Bar
