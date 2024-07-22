@@ -76,7 +76,7 @@ const TopCoinsTable = () => {
                   onClick={() => handleCoinClick(coin)}
                 >
                   <td>
-                    <img src={coin.image} alt={coin.name} className={styles.icon} style={{ width: '20px', height: '16px', objectFit: 'cover' }} />
+                    <img src={coin.image} alt={coin.name}  style={{ width: '20px', height: '16px', objectFit: 'cover' }} />
                   </td>
                   <td>{coin.name}</td>
                   <td>{coin.current_price}</td>

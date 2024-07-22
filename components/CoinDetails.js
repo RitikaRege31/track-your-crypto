@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, LineElement, BarElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
+import simulateLivePriceUpdates from '../utils/mockLivePrices';
+import PubSub from '../utils/pubsub';
 
 ChartJS.register(LineElement, BarElement, CategoryScale, LinearScale, PointElement);
 
@@ -9,11 +11,11 @@ const CoinDetails = ({ coin }) => {
   const [chartData, setChartData] = useState({});
   const [priceHistoryData, setPriceHistoryData] = useState({});
   const [sevenDayData, setSevenDayData] = useState([]);
+  const [livePrice, setLivePrice] = useState(null);
 
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        // Fetch coin details
         const detailsResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}`, {
           method: 'GET',
           headers: {
@@ -24,7 +26,6 @@ const CoinDetails = ({ coin }) => {
         const details = await detailsResponse.json();
         setCoinDetails(details);
 
-        // Fetch hourly price data for the past day
         const chartResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1&interval=hourly`, {
           method: 'GET',
           headers: {
@@ -35,7 +36,6 @@ const CoinDetails = ({ coin }) => {
         const chart = await chartResponse.json();
         setChartData(chart);
 
-        // Fetch daily price data for the past 30 days
         const historyResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=daily`, {
           method: 'GET',
           headers: {
@@ -46,7 +46,6 @@ const CoinDetails = ({ coin }) => {
         const history = await historyResponse.json();
         setPriceHistoryData(history);
 
-        // Fetch price data for the past 7 days
         const sevenDayResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=7&interval=daily`, {
           method: 'GET',
           headers: {
@@ -56,7 +55,6 @@ const CoinDetails = ({ coin }) => {
         });
         const sevenDay = await sevenDayResponse.json();
         setSevenDayData(sevenDay.prices);
-
       } catch (error) {
         console.error('Error fetching coin details or chart data:', error);
       }
@@ -64,10 +62,20 @@ const CoinDetails = ({ coin }) => {
 
     if (coin) {
       fetchDetails();
+      simulateLivePriceUpdates(coin.id); // Start simulating live price updates
     }
+
+    const handlePriceUpdate = (newPrice) => {
+      setLivePrice(newPrice);
+    };
+
+    PubSub.subscribe('priceUpdate', handlePriceUpdate);
+
+    return () => {
+      PubSub.subscribe('priceUpdate', handlePriceUpdate);
+    };
   }, [coin]);
 
-  // Format data for the daily price chart
   const formatPriceHistoryData = () => {
     if (!priceHistoryData.prices) return { labels: [], datasets: [] };
 
@@ -88,7 +96,6 @@ const CoinDetails = ({ coin }) => {
     };
   };
 
-  // Format data for the 7-day performance bar chart
   const formatSevenDayData = () => {
     if (!sevenDayData.length) return { labels: [], datasets: [] };
 
@@ -107,7 +114,7 @@ const CoinDetails = ({ coin }) => {
         },
         {
           label: 'Current Price',
-          data: Array(data.length).fill(currentPrice),
+          data: Array(data.length).fill(livePrice || currentPrice),
           backgroundColor: '#E0115F',
           borderColor: '#E0115F',
           type: 'line',
@@ -132,7 +139,7 @@ const CoinDetails = ({ coin }) => {
         }}>
           <h2 style={{ fontSize: '36px' }}><b>{coinDetails.name}</b></h2><br/>
           <img src={coinDetails.image.large} alt={coinDetails.name} style={{ width: '100px', height: '100px' }} /><br/>
-          <p>Current Price: ${coinDetails.market_data.current_price.usd}</p>
+          <p>Current Price: ${livePrice || coinDetails.market_data.current_price.usd}</p>
           <p>Market Cap: ${coinDetails.market_data.market_cap.usd}</p>
           <p>Market Cap Rank: {coinDetails.market_cap_rank}</p>
           <p>Total Volume: ${coinDetails.market_data.total_volume.usd}</p>
@@ -143,7 +150,6 @@ const CoinDetails = ({ coin }) => {
           <p>All-Time High: ${coinDetails.market_data.ath.usd}</p>
           <p>Price Change % 1H: {coinDetails.market_data.price_change_percentage_1h_in_currency.usd}%</p><br/>
 
-          {/* Daily Price History */}
           {priceHistoryData.prices && (
             <div style={{ width: '100%', height: '400px', margin: '20px 0' , alignContent:'center',textAlign: 'center'}}>
             <h3 style={{ fontSize: '24px' }}><b>Price vs. Date (Last 30 Days)</b></h3><br/>
@@ -181,10 +187,7 @@ const CoinDetails = ({ coin }) => {
                     title: {
                       display: true,
                       text: 'Date',
-                      color: '#333',
-                      font: {
-                        size: 14,
-                      },
+                      color: '#666',
                     },
                   },
                   y: {
@@ -194,17 +197,13 @@ const CoinDetails = ({ coin }) => {
                     },
                     ticks: {
                       color: '#555',
-                      callback: function (value) {
-                        return `$${value}`;
-                      },
+                      autoSkip: true,
+                      maxTicksLimit: 10,
                     },
                     title: {
                       display: true,
-                      text: 'Price (USD)',
-                      color: '#333',
-                      font: {
-                        size: 14,
-                      },
+                      text: 'Price',
+                      color: '#666',
                     },
                   },
                 },
@@ -213,11 +212,10 @@ const CoinDetails = ({ coin }) => {
           </div>
           )}
 
-          {/* 7-Day Performance Bar */}
           {sevenDayData.length > 0 && (
-            <div style={{ width: '100%', height: '400px', margin: '20px 0', alignContent: 'center', textAlign: 'center' }}>
+            <div style={{ width: '100%', height: '400px', margin: '20px 0' , alignContent:'center',textAlign: 'center'}}>
               <br/><br/>
-              <h3 style={{ fontSize: '24px' }}><b>7-Day Performance</b></h3><br/>
+              <h3 style={{ fontSize: '24px' }}><b>Price vs. Date (Last 7 Days)</b></h3><br/>
               <Bar
                 data={formatSevenDayData()}
                 options={{
@@ -247,15 +245,12 @@ const CoinDetails = ({ coin }) => {
                       ticks: {
                         color: '#555',
                         autoSkip: true,
-                        maxTicksLimit: 10,
+                        maxTicksLimit: 7,
                       },
                       title: {
                         display: true,
                         text: 'Date',
-                        color: '#333',
-                        font: {
-                          size: 14,
-                        },
+                        color: '#666',
                       },
                     },
                     y: {
@@ -265,17 +260,13 @@ const CoinDetails = ({ coin }) => {
                       },
                       ticks: {
                         color: '#555',
-                        callback: function (value) {
-                          return `$${value}`;
-                        },
+                        autoSkip: true,
+                        maxTicksLimit: 10,
                       },
                       title: {
                         display: true,
-                        text: 'Price (USD)',
-                        color: '#333',
-                        font: {
-                          size: 14,
-                        },
+                        text: 'Price',
+                        color: '#666',
                       },
                     },
                   },
@@ -283,7 +274,6 @@ const CoinDetails = ({ coin }) => {
               />
             </div>
           )}
-
         </div>
       )}
     </div>
