@@ -65,7 +65,7 @@ export default function Home() {
                 <div ref={provided.innerRef} {...provided.droppableProps}>
                   <TopCoinsTable coins={coins} />
                   {provided.placeholder}
-                  <button onClick={handleLoadMore}>Load More</button>
+                  <button onClick={handleLoadMore}></button>
                 </div>
               )}
             </Droppable>

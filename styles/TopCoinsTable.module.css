@@ -31,4 +31,17 @@
   .topCoinsTable td {
     font-size: 0.875rem;
   }
+  .paginationControls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+  }
   
+  .paginationButton {
+    margin: 0 10px;
+  }
+  
+  .pageIndicator {
+    margin: 0 10px;
+  }

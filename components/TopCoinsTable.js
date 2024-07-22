@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import styles from '../styles/TopCoinsTable.module.css';
 import { useCoinContext } from '../lib/CoinContext';
-import { useSelectedCoin } from '../hooks/useSelectedCoin';
 
-const TopCoinsTable = ({ coins }) => {
+const TopCoinsTable = () => {
   const [topCoins, setTopCoins] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { handleCoinClick } = useCoinContext();
 
   useEffect(() => {
@@ -20,19 +21,34 @@ const TopCoinsTable = ({ coins }) => {
           },
         };
 
-        // Fetching the top 20 coins sorted by market cap
-        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1', options);
+        // Fetching the top coins based on the current page
+        const response = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=${currentPage}`, options);
         const data = await response.json();
 
         // Update state with fetched data
         setTopCoins(data);
+
+        // Calculate the total number of pages (assuming total items are 10000 for demonstration)
+        setTotalPages(Math.ceil(10000 / 20));
       } catch (error) {
         console.error('Error fetching top coins data:', error);
       }
     };
 
     fetchTopCoins();
-  }, []);
+  }, [currentPage]);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prevPage => prevPage + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prevPage => prevPage - 1);
+    }
+  };
 
   return (
     <div className={styles.topCoinsTable}>
@@ -57,8 +73,7 @@ const TopCoinsTable = ({ coins }) => {
                   ref={provided.innerRef}
                   {...provided.draggableProps}
                   {...provided.dragHandleProps}
-                  onClick={() => handleCoinClick(coin)} 
-                //   onClick={() => onCoinClick(coin)}
+                  onClick={() => handleCoinClick(coin)}
                 >
                   <td>
                     <img src={coin.image} alt={coin.name} className={styles.icon} style={{ width: '20px', height: '16px', objectFit: 'cover' }} />
@@ -75,6 +90,11 @@ const TopCoinsTable = ({ coins }) => {
           ))}
         </tbody>
       </table>
+      <div className={styles.paginationControls}>
+        <button onClick={handlePreviousPage} disabled={currentPage === 1} className={styles.paginationButton}><b>Previous</b></button>
+        <span className={styles.pageIndicator}>Page {currentPage} of {totalPages}</span>
+        <button onClick={handleNextPage} disabled={currentPage === totalPages} className={styles.paginationButton}><b>Next</b></button>
+      </div>
     </div>
   );
 };
