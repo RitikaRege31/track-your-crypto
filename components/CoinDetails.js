@@ -25,20 +25,20 @@ const CoinDetails = ({ coin }) => {
             'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
           }
         }),
-        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1&interval=hourly`, {
-          method: 'GET',
-          headers: {
-            accept: 'application/json',
-            'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
-          }
-        }),
-        fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=daily`, {
-          method: 'GET',
-          headers: {
-            accept: 'application/json',
-            'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
-          }
-        }),
+        // fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=1&interval=hourly`, {
+        //   method: 'GET',
+        //   headers: {
+        //     accept: 'application/json',
+        //     'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
+        //   }
+        // }),
+        // fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=daily`, {
+        //   method: 'GET',
+        //   headers: {
+        //     accept: 'application/json',
+        //     'x-cg-demo-api-key': 'CG-iy1aPFiBFuLAGo2e4CC2BJ2f'
+        //   }
+        // }),
         fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=7&interval=daily`, {
           method: 'GET',
           headers: {
